@@ -22,6 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * First go at implementing the schema rewrite functionality. Seems to be too complex.
+ */
 public class SchemaRewriteConverter implements Converter {
 
     private static Logger logger = LoggerFactory.getLogger(SchemaRewriteConverter.class);
