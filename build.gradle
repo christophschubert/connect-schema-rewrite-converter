@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+}
+
+group 'net.christophschubert.kafka.connect.converter'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.11
+
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://packages.confluent.io/maven'
+    }
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+    compile group: 'org.apache.kafka', name: 'connect-api', version: '2.6.0'
+    compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.6.0'
+
+    compile group: 'io.confluent', name: 'kafka-avro-serializer', version: '6.0.0'
+
+}
+
+test {
+    useJUnitPlatform()
+}
