@@ -1,0 +1,17 @@
+{
+  "name": "replicator-data",
+  "config": {
+    "connector.class": "io.confluent.connect.replicator.ReplicatorSourceConnector",
+    "topic.regex": "data\\..*",
+    "topic.rename.format": "${topic}.replica",
+    "key.converter": "io.confluent.connect.replicator.util.ByteArrayConverter",
+    "value.converter": "net.christophschubert.kafka.connect.converter.SchemaRewriteConverter",
+    "src.value.converter": "net.christophschubert.kafka.connect.converter.SchemaRewriteConverter",
+    "src.kafka.bootstrap.servers": "kafkaA:19091",
+    "src.kafka.security.protocol": "PLAINTEXT",
+    "src.consumer.group.id": "replicator",
+    "dest.topic.replication.factor": 1,
+    "dest.kafka.bootstrap.servers": "kafkaB:19092",
+    "producer.override.bootstrap.servers": "kafkaB:19092"
+  }
+}

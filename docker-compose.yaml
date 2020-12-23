@@ -1,0 +1,135 @@
+---
+version: '3.4'
+services:
+  zookeeperA:
+    image: confluentinc/cp-zookeeper:6.0.1
+    hostname: zookeeperA
+    container_name: zookeeperA
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_SERVERS: zookeeperA:2888:3888
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: localhost
+
+  kafkaA:
+    image: confluentinc/cp-enterprise-kafka:6.0.1
+    hostname: kafkaA
+    container_name: kafkaA
+    depends_on:
+      - zookeeperA
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeperA:2181
+      KAFKA_LISTENERS: PLAINTEXT://kafkaA:19091, EXTERNAL://kafkaA:9091
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafkaA:19091, EXTERNAL://localhost:9091
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9998
+      KAFKA_JMX_HOSTNAME: kafkaA
+      KAFKA_BROKER_RACK: 0
+    ports:
+      - 9091:9091
+
+  schema-registryA:
+    image: confluentinc/cp-schema-registry:6.0.1
+    hostname: schema-registryA
+    container_name: schema-registryA
+    depends_on:
+      - kafkaA
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafkaA:19091
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+
+  zookeeperB:
+    image: confluentinc/cp-zookeeper:6.0.1
+    hostname: zookeeperB
+    container_name: zookeeperB
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2182
+      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_SERVERS: zookeeperB:2888:3888
+      KAFKA_JMX_PORT: 9999
+      KAFKA_JMX_HOSTNAME: localhost
+
+  kafkaB:
+    image: confluentinc/cp-enterprise-kafka:6.0.1
+    hostname: kafkaB
+    container_name: kafkaB
+    depends_on:
+      - zookeeperB
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeperB:2182
+      KAFKA_LISTENERS: PLAINTEXT://kafkaB:19092, EXTERNAL://kafkaB:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafkaB:19092, EXTERNAL://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9998
+      KAFKA_JMX_HOSTNAME: kafkaB
+      KAFKA_BROKER_RACK: 0
+    ports:
+      - 9092:9092
+
+  schema-registryB:
+    image: confluentinc/cp-schema-registry:6.0.1
+    hostname: schema-registryB
+    container_name: schema-registryB
+    depends_on:
+      - kafkaB
+    ports:
+      - 8082:8082
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafkaB:19092
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8082"
+
+  connect:
+    image: confluentinc/cp-server-connect:6.0.1
+    container_name: connect
+    restart: always
+    ports:
+      - 8083:8083
+    depends_on:
+      - kafkaB
+    volumes:
+      - mi3:/usr/share/replicator/kafka-connect-replicator/
+      - ./build/libs:/extras
+    environment:
+      CLASSPATH: /usr/share/replicator/kafka-connect-replicator/replicator-rest-extension-6.0.1.jar;/extras/connect-schema-rewrite-converter-1.0-SNAPSHOT.jar
+      CONNECT_BOOTSTRAP_SERVERS: kafkaB:19092
+      CONNECT_REST_PORT: 8083
+      CONNECT_LISTENERS: "http://0.0.0.0:8083"
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-statuses
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_GROUP_ID: "connect"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      CONNECT_REST_ADVERTISED_HOST_NAME: "connect"
+      CONNECT_PLUGIN_PATH: "/usr/share/replicator,/extras"
+      CONNECT_REPLICATION_FACTOR: 1
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: All
+      CONNECT_CONFLUENT_TOPIC_REPLICATION_FACTOR: 1
+
+  replicator-for-jar-transfer:
+    image: confluentinc/cp-enterprise-replicator:6.0.1
+    hostname: replicator-for-jar-transfer
+    container_name: replicator-for-jar-transfer
+    volumes:
+      - mi3:/usr/share/java/kafka-connect-replicator/
+    command: "sleep infinity"
+
+volumes:
+  mi3: {}
