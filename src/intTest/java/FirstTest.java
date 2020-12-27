@@ -44,82 +44,8 @@ import java.util.concurrent.ExecutionException;
 
 public class FirstTest {
 
+    // TODO: remove this
     final String cpVersion = "6.0.1";
-
-    String makeHttpUrl(DockerComposeContainer env, String serviceName, int servicePort) {
-        return String.format("http://%s", makeEndPoint(env, serviceName, servicePort));
-    }
-
-    String makeEndPoint(DockerComposeContainer env, String serviceName, int servicePort) {
-        return String.format("%s:%d", env.getServiceHost(serviceName, servicePort), env.getServicePort(serviceName, servicePort));
-    }
-
-    final String srcSchemaRegistryService = "schema-registryA_1";
-    final String destSchemaRegistryService = "schema-registryB_1";
-    final String srcKafkaService = "kafkaA_1";
-    final String destKafkaService = "kafkaB_1";
-    final String connectService = "connect_1";
-
-
-    @Test
-    // seems to have some problems as I'm not able to get any data from the consumer
-    // should double-check with https://www.confluent.io/blog/kafka-listeners-explained/
-    public void dockerComposeEnvironment() throws ExecutionException, InterruptedException {
-        final DockerComposeContainer environment =
-                new DockerComposeContainer<>(new File("src/intTest/resources/envs/basicReplication/docker-compose.yaml"))
-                        .withExposedService(srcSchemaRegistryService, 8081, Wait.forListeningPort())
-                        .withExposedService(destSchemaRegistryService, 8082, Wait.forListeningPort())
-                        .withExposedService(srcKafkaService, 9091, Wait.forListeningPort())
-                        .withExposedService(destKafkaService, 9092, Wait.forListeningPort())
-                        .withExposedService(connectService, 8083, Wait.forListeningPort());
-        environment.start();
-
-
-        final Consumer consumer = new KafkaConsumer(Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, makeEndPoint(environment, srcKafkaService, 9091), ConsumerConfig.GROUP_ID_CONFIG, "test-group-3", ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-                "earliest"), new StringDeserializer(), new StringDeserializer());
-        final Producer producer = new KafkaProducer(Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, makeEndPoint(environment, srcKafkaService, 9091)), new StringSerializer(), new StringSerializer());
-
-        AdminClient client = KafkaAdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, makeEndPoint(environment, srcKafkaService, 9091)));
-        client.createTopics(List.of(new NewTopic("data.topic", Optional.empty(), Optional.empty()))).all().get();
-
-        System.out.println(client.listTopics().names().get());
-        System.out.println(client.listConsumerGroups().all().get());
-
-        try {
-            for (int i = 0; i < 30; i++) {
-                final var o1 = producer.send(new ProducerRecord("data.topic", "hello", "world")).get();
-                System.out.println(o1);
-            }
-
-            System.out.println("produced");
-            consumer.subscribe(List.of("data.topic"), new ConsumerRebalanceListener() {
-                @Override
-                public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-                    System.out.println("revoked" + partitions);
-                }
-
-                @Override
-                public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-                    System.out.println("Got assigned" + partitions);
-                }
-            });
-            Thread.sleep(1000);
-//            consumer.assign(List.of(new TopicPartition("data.topic", 0)));
-            System.out.println(consumer.subscription());
-
-//            System.out.println(" pos: " + consumer.position(new TopicPartition("data.topic", 0)));
-            for (int i = 0; i < 5; ++i) {
-                final var records = consumer.poll(Duration.ofMillis(500));
-                System.out.println(records.isEmpty());
-                System.out.println("polled...");
-                System.out.println(records);
-
-            }
-
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Test
     public void testUsingKafkaTestContainer() throws IOException, InterruptedException {
