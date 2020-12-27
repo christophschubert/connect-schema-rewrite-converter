@@ -21,7 +21,6 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
     }
 
     public String getInternalBaseUrl() {
-        //TODO: implement it
-        return null;
+        return String.format("http://%s:%d", getNetworkAliases().get(0), defaultPort);
     }
 }

@@ -50,6 +50,10 @@ dependencies {
     intTestImplementation "org.testcontainers:testcontainers:1.15.0"
     intTestImplementation "org.testcontainers:kafka:1.15.0"
     intTestImplementation "org.testcontainers:junit-jupiter:1.15.1"
+
+    // for Connect client
+    intTestImplementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.3'
+    intTestImplementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.10.3'
 }
 
 test {

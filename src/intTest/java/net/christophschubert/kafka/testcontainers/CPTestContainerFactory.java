@@ -18,6 +18,10 @@ public class CPTestContainerFactory {
         this.network = network;
     }
 
+    public CPTestContainerFactory() {
+        this(Network.newNetwork());
+    }
+
     DockerImageName imageName(String componentName) {
         //TODO: refactor this
         return DockerImageName.parse(String.format("%s/%s:%s", repository, componentName, tag));

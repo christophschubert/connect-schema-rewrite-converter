@@ -36,4 +36,9 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
         withEnv("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter");
         withExposedPorts(defaultPort);
     }
+
+    public String getBaseUrl() {
+       return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(defaultPort)); //TODO: finish!
+
+    }
 }
