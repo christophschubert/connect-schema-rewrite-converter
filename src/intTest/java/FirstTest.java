@@ -6,7 +6,9 @@ import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
+import net.christophschubert.kafka.testcontainers.CPTestContainer;
 import net.christophschubert.kafka.testcontainers.CPTestContainerFactory;
+import net.christophschubert.kafka.testcontainers.KafkaConnectContainer;
 import net.christophschubert.kafka.testcontainers.SchemaRegistryContainer;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -123,7 +125,6 @@ public class FirstTest {
     public void testUsingKafkaTestContainer() throws IOException, InterruptedException {
         final Network network = Network.newNetwork();
         final var testContainerFactory = new CPTestContainerFactory(network);
-        final String cpVersion = "6.0.1";
 
         final KafkaContainer sourceKafka = testContainerFactory.createKafka();
         sourceKafka.start();
@@ -175,47 +176,28 @@ public class FirstTest {
     }
 
     @Test
-    public void setupConnect() throws InterruptedException, IOException {
-        final Network network = Network.newNetwork();
+    public void setupConnect() {
 
-        final KafkaContainer sourceKafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:" + cpVersion))
-                .withNetwork(network);
-        final KafkaContainer destinationKafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:" + cpVersion))
-                .withNetwork(network);
+    }
+
+    @Test
+    public void setupReplicator() throws InterruptedException, IOException, ExecutionException {
+        final Network network = Network.newNetwork();
+        final var testContainerFactory = new CPTestContainerFactory(network);
+
+
+        final KafkaContainer sourceKafka = testContainerFactory.createKafka();
+        final KafkaContainer destinationKafka = testContainerFactory.createKafka();
         sourceKafka.start();
         destinationKafka.start();
 
-        // TODO: encapsulate this construction into a class
-        final GenericContainer replicatorContainer = new GenericContainer<>(DockerImageName.parse("confluentinc/cp-enterprise-replicator:" + cpVersion))
-                .withNetwork(network)
-                .dependsOn(destinationKafka)
-                .withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()))
-                .withStartupTimeout(Duration.ofMinutes(5))
-                .waitingFor(Wait.forHttp("/"))
-                .withEnv("CONNECT_BOOTSTRAP_SERVERS", destinationKafka.getNetworkAliases().get(0) + ":9092")
-                .withEnv("CONNECT_REST_PORT", "8083")
-                .withEnv("CONNECT_GROUP_ID", "replicator")
-                .withEnv("CONNECT_REPLICATION_FACTOR", "1")
-                .withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost")
-                .withEnv("CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY", "All")
-                .withEnv("CONNECT_CONFLUENT_TOPIC_REPLICATION_FACTOR", "1")
-                .withEnv("CONNECT_LISTENERS", "http://0.0.0.0:8083")
-                .withEnv("CONNECT_LOG4J_ROOT_LOGLEVEL", "INFO")
-                .withEnv("CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR", "1")
-                .withEnv("CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR", "1")
-                .withEnv("CONNECT_STATUS_STORAGE_REPLICATION_FACTOR", "1")
-                .withEnv("CONNECT_CONFIG_STORAGE_TOPIC", "default.config")
-                .withEnv("CONNECT_OFFSET_STORAGE_TOPIC", "default.offsets")
-                .withEnv("CONNECT_STATUS_STORAGE_TOPIC", "default.status")
-                .withEnv("CONNECT_PLUGIN_PATH", "/usr/share/java")
-                .withEnv("CONNECT_KEY_CONVERTER", "org.apache.kafka.connect.json.JsonConverter")
-                .withEnv("CONNECT_VALUE_CONVERTER", "org.apache.kafka.connect.json.JsonConverter")
-                .withExposedPorts(8083);
-
+        final KafkaConnectContainer replicatorContainer = testContainerFactory.createReplicator(destinationKafka);
+        replicatorContainer.withLogConsumer(outputFrame -> System.out.print(outputFrame.getUtf8String()));
         replicatorContainer.start();
 
-        final var destBootstrapServer = destinationKafka.getNetworkAliases().get(0) + ":9092";
-        final var sourceBootstrapServer = sourceKafka.getNetworkAliases().get(0) + ":9092";
+
+        final var destBootstrapServer = CPTestContainer.getInternalBootstrap(destinationKafka);
+        final var sourceBootstrapServer = CPTestContainer.getInternalBootstrap(sourceKafka);
 
         final var replicatorConfig = "{\n" +
                 "  \"name\": \"replicator-data\",\n" +
@@ -232,6 +214,10 @@ public class FirstTest {
                 "    \"producer.override.bootstrap.servers\": \"" + destBootstrapServer + "\"\n" +
                 "  }\n" +
                 "}";
+
+        //should pre-create all topics:
+        final AdminClient adminClient = KafkaAdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, sourceKafka.getBootstrapServers()));
+        adminClient.createTopics(List.of(new NewTopic("data.topic", Optional.empty(), Optional.empty()))).all().get();
 
         HttpClient client = HttpClient.newBuilder().build();
         final var request = HttpRequest.newBuilder(URI.create("http://" + replicatorContainer.getContainerIpAddress() + ":" + replicatorContainer.getMappedPort(8083) + "/connectors"))
@@ -258,22 +244,17 @@ public class FirstTest {
 
         final Consumer consumer = new KafkaConsumer(consumerProperties);
 
-        producer.send(new ProducerRecord("some.topic", "user", "value-whatever"));
+        final String testValue = "somevalue";
+        producer.send(new ProducerRecord("data.topic", "user", testValue));
+        producer.flush();
 
-//        Schema s = SchemaBuilder.builder().record("User").fields().requiredString("email").requiredInt("age").endRecord();
-
-        for (int i = 0; i < 30; i++) {
-//            final var record = new GenericRecordBuilder(s).set("email", "peter@a.com").set("age", i + 18).build();
-            final var o1 = producer.send(new ProducerRecord("data.topic", "user", "value-" + i));
-            System.out.println(o1);
-        }
         System.out.println("produced");
         Thread.sleep(2000);
         consumer.subscribe(List.of("data.topic.replica"));
         for (int i = 0; i < 5; ++i) {
             final ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(500));
             for (ConsumerRecord<String, String> record : records) {
-                System.out.println(record.value());
+                Assert.assertEquals(testValue, record.value());
             }
         }
     }

@@ -12,7 +12,7 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
         super(imageName, bootstrap, network);
 
         withEnv("SCHEMA_REGISTRY_HOST_NAME", "localhost");
-        withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", bootstrap.getNetworkAliases().get(0) + ":9092");
+        withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", getInternalBootstrap(bootstrap));
         withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:" + defaultPort).withExposedPorts(defaultPort);
     }
 
@@ -20,4 +20,8 @@ public class SchemaRegistryContainer extends CPTestContainer<SchemaRegistryConta
         return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(defaultPort)); //TODO: finish!
     }
 
+    public String getInternalBaseUrl() {
+        //TODO: implement it
+        return null;
+    }
 }

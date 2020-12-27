@@ -19,6 +19,7 @@ public class CPTestContainerFactory {
     }
 
     DockerImageName imageName(String componentName) {
+        //TODO: refactor this
         return DockerImageName.parse(String.format("%s/%s:%s", repository, componentName, tag));
     }
 
@@ -27,7 +28,14 @@ public class CPTestContainerFactory {
     }
 
     public SchemaRegistryContainer createSchemaRegistry(KafkaContainer bootstrap) {
-        final var sr = new SchemaRegistryContainer(imageName("cp-schema-registry"), bootstrap, network);
-        return sr;
+        return new SchemaRegistryContainer(imageName("cp-schema-registry"), bootstrap, network);
+    }
+
+    public KafkaConnectContainer createKafkaConnect(KafkaContainer bootstrap) {
+        return new KafkaConnectContainer(imageName("cp-kafka-connect"), bootstrap, network);
+    }
+
+    public KafkaConnectContainer createReplicator(KafkaContainer bootstrap) {
+        return new KafkaConnectContainer(imageName("cp-enterprise-replicator"), bootstrap, network);
     }
 }
