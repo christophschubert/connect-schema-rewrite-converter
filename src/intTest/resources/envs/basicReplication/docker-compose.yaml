@@ -4,7 +4,6 @@ services:
   zookeeperA:
     image: confluentinc/cp-zookeeper:6.0.1
     hostname: zookeeperA
-    container_name: zookeeperA
     environment:
       ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_CLIENT_PORT: 2181
@@ -16,7 +15,6 @@ services:
   kafkaA:
     image: confluentinc/cp-enterprise-kafka:6.0.1
     hostname: kafkaA
-    container_name: kafkaA
     depends_on:
       - zookeeperA
     environment:
@@ -36,7 +34,6 @@ services:
   schema-registryA:
     image: confluentinc/cp-schema-registry:6.0.1
     hostname: schema-registryA
-    container_name: schema-registryA
     depends_on:
       - kafkaA
     ports:
@@ -49,7 +46,6 @@ services:
   zookeeperB:
     image: confluentinc/cp-zookeeper:6.0.1
     hostname: zookeeperB
-    container_name: zookeeperB
     environment:
       ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_CLIENT_PORT: 2182
@@ -61,7 +57,6 @@ services:
   kafkaB:
     image: confluentinc/cp-enterprise-kafka:6.0.1
     hostname: kafkaB
-    container_name: kafkaB
     depends_on:
       - zookeeperB
     environment:
@@ -81,7 +76,6 @@ services:
   schema-registryB:
     image: confluentinc/cp-schema-registry:6.0.1
     hostname: schema-registryB
-    container_name: schema-registryB
     depends_on:
       - kafkaB
     ports:
@@ -93,7 +87,6 @@ services:
 
   connect:
     image: confluentinc/cp-server-connect:6.0.1
-    container_name: connect
     restart: always
     ports:
       - 8083:8083
@@ -104,7 +97,7 @@ services:
       - ./build/libs:/extras
     environment:
       CLASSPATH: /usr/share/replicator/kafka-connect-replicator/replicator-rest-extension-6.0.1.jar;/extras/connect-schema-rewrite-converter-1.0-SNAPSHOT.jar
-      CONNECT_BOOTSTRAP_SERVERS: kafkaB:9092
+      CONNECT_BOOTSTRAP_SERVERS: kafkaB:19092
       CONNECT_REST_PORT: 8083
       CONNECT_LISTENERS: "http://0.0.0.0:8083"
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
@@ -121,12 +114,12 @@ services:
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: All
-
+      CONNECT_CONFLUENT_TOPIC_REPLICATION_FACTOR: 1
 
   replicator-for-jar-transfer:
     image: confluentinc/cp-enterprise-replicator:6.0.1
     hostname: replicator-for-jar-transfer
-    container_name: replicator-for-jar-transfer
+
     volumes:
       - mi3:/usr/share/java/kafka-connect-replicator/
     command: "sleep infinity"
