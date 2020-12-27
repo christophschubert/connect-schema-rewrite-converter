@@ -20,3 +20,9 @@ In this way, `toConnectData` becomes basically a no-op.
 
 ### Todos/features to consider
 * how can other SubjectNamingStrategies be implemented
+
+
+### Remarks
+
+Just dropping a docker-compose file is not enough. We can produce and use AdminClient, but we cannot consume.
+Should double-check with https://www.confluent.io/blog/kafka-listeners-explained/
