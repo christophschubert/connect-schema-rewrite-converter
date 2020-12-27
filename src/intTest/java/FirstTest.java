@@ -24,6 +24,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.Assert;
 import org.junit.Test;
 import org.testcontainers.containers.*;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -132,15 +133,13 @@ public class FirstTest {
 
         final HttpClient client = HttpClient.newBuilder().build();
 
-        final var request = HttpRequest.newBuilder(URI.create("http://" + sourceSchemaRegistry.getContainerIpAddress() + ":" + sourceSchemaRegistry.getMappedPort(8081) + "/subjects")).build();
+        final var schemaRegistryUrl = sourceSchemaRegistry.getBaseUrl();
+        final var request = HttpRequest.newBuilder(URI.create(schemaRegistryUrl + "/subjects")).build();
         final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
         System.out.println(response);
         System.out.println(response.body());
-
-        System.out.println("way1 " + sourceKafka.getNetworkAliases().get(0) + ":9092");
-        System.out.println("way2 " + sourceKafka.getBootstrapServers());
-
-        final var schemaRegistryUrl = String.format("http://%s:%d", sourceSchemaRegistry.getContainerIpAddress(), sourceSchemaRegistry.getMappedPort(8081));
+        Assert.assertEquals(200, response.statusCode());
+        Assert.assertEquals("[]", response.body());
 
 
         final var producerProperties = new Properties();
@@ -162,20 +161,16 @@ public class FirstTest {
 
         final Consumer consumer = new KafkaConsumer(consumerProperties);
 
-        Schema s = SchemaBuilder.builder().record("User").fields().requiredString("email").requiredInt("age").endRecord();
+        final Schema s = SchemaBuilder.builder().record("User").fields().requiredString("email").requiredInt("age").endRecord();
+        final var originalRecord = new GenericRecordBuilder(s).set("email", "peter@a.com").set("age", 18).build();
+        producer.send(new ProducerRecord("data.topic", "user", originalRecord));
+        producer.flush();
 
-        for (int i = 0; i < 30; i++) {
-            final var record = new GenericRecordBuilder(s).set("email", "peter@a.com").set("age", i + 18).build();
-            final var o1 = producer.send(new ProducerRecord("data.topic", "user", record));
-            System.out.println(o1);
-        }
-        System.out.println("produced");
         consumer.subscribe(List.of("data.topic"));
-        for (int i = 0; i < 5; ++i) {
-            final ConsumerRecords<String, GenericRecord> records = consumer.poll(Duration.ofMillis(500));
-            for (ConsumerRecord<String, GenericRecord> record : records) {
-                System.out.println(record.value());
-            }
+
+        final ConsumerRecords<String, GenericRecord> records = consumer.poll(Duration.ofMillis(500));
+        for (ConsumerRecord<String, GenericRecord> record : records) {
+            Assert.assertEquals(originalRecord, record.value());
         }
     }
 
@@ -234,7 +229,7 @@ public class FirstTest {
                 "    \"src.consumer.group.id\": \"replicator\",\n" +
                 "    \"dest.topic.replication.factor\": 1,\n" +
                 "    \"dest.kafka.bootstrap.servers\": \"" + destBootstrapServer + "\",\n" +
-                "    \"producer.override.bootstrap.servers\": \""+ destBootstrapServer +"\"\n" +
+                "    \"producer.override.bootstrap.servers\": \"" + destBootstrapServer + "\"\n" +
                 "  }\n" +
                 "}";
 
@@ -371,13 +366,13 @@ public class FirstTest {
                 "    \"topic.rename.format\": \"${topic}.replica\",\n" +
                 "    \"key.converter\": \"io.confluent.connect.replicator.util.ByteArrayConverter\",\n" +
                 "    \"value.converter\": \"net.christophschubert.kafka.connect.converter.SchemaIdRewriteConverter\",\n" +
-                "    \"value.converter.source.schema.registry.url\": \"http://"+srcSRUrl+"\",\n" +
-                "    \"value.converter.destination.schema.registry.url\": \"http://"+destSRUrl+ "\",\n" +
+                "    \"value.converter.source.schema.registry.url\": \"http://" + srcSRUrl + "\",\n" +
+                "    \"value.converter.destination.schema.registry.url\": \"http://" + destSRUrl + "\",\n" +
                 "    \"src.kafka.bootstrap.servers\": \"" + sourceBootstrapServer + "\",\n" +
                 "    \"src.consumer.group.id\": \"replicator\",\n" +
                 "    \"dest.topic.replication.factor\": 1,\n" +
                 "    \"dest.kafka.bootstrap.servers\": \"" + destBootstrapServer + "\",\n" +
-                "    \"producer.override.bootstrap.servers\": \""+ destBootstrapServer +"\"\n" +
+                "    \"producer.override.bootstrap.servers\": \"" + destBootstrapServer + "\"\n" +
                 "  }\n" +
                 "}";
 
@@ -439,7 +434,7 @@ public class FirstTest {
         System.out.println("produced");
 
 
-        while(!waiter.found) {
+        while (!waiter.found) {
             for (int i = 0; i < 2; i++) { // jumping through some hoops to ensure that (async) replication has token place
                 final ConsumerRecords<String, GenericRecord> records = consumer.poll(Duration.ofMillis(5000));
                 for (ConsumerRecord<String, GenericRecord> record : records) {
@@ -459,7 +454,7 @@ public class FirstTest {
             this.part = part;
         }
 
-        void accept (String s) {
+        void accept(String s) {
             System.out.print(s);
             if (s.contains(part))
                 found = true;
