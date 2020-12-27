@@ -1,12 +1,15 @@
-import io.confluent.kafka.schemaregistry.ParsedSchema;
 import io.confluent.kafka.schemaregistry.avro.AvroSchema;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.confluent.kafka.serializers.*;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.KafkaAvroSerializerConfig;
+import net.christophschubert.kafka.testcontainers.CPTestContainerFactory;
+import net.christophschubert.kafka.testcontainers.SchemaRegistryContainer;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
-import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -22,7 +25,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.*;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
@@ -119,26 +121,17 @@ public class FirstTest {
     @Test
     public void testUsingKafkaTestContainer() throws IOException, InterruptedException {
         final Network network = Network.newNetwork();
+        final var testContainerFactory = new CPTestContainerFactory(network);
         final String cpVersion = "6.0.1";
 
-        final KafkaContainer sourceKafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:" + cpVersion))
-                .withNetwork(network);
+        final KafkaContainer sourceKafka = testContainerFactory.createKafka();
         sourceKafka.start();
 
-        // TODO: encapsulate this construction into a class
-        final GenericContainer sourceSchemaRegistry = new GenericContainer<>(DockerImageName.parse("confluentinc/cp-schema-registry:" + cpVersion))
-                .withNetwork(network)
-                .dependsOn(sourceKafka)
-                .withEnv("SCHEMA_REGISTRY_HOST_NAME", "localhost")
-                // TODO: check if there is a better way to get the internal address, getBootstrapServers does not work
-                .withEnv("SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS", sourceKafka.getNetworkAliases().get(0) + ":9092")
-                .withEnv("SCHEMA_REGISTRY_LISTENERS", "http://0.0.0.0:8081").withExposedPorts(8081);
-
-        System.out.println(sourceSchemaRegistry.getExposedPorts());
-
+        final SchemaRegistryContainer sourceSchemaRegistry = testContainerFactory.createSchemaRegistry(sourceKafka);
         sourceSchemaRegistry.start();
 
-        HttpClient client = HttpClient.newBuilder().build();
+        final HttpClient client = HttpClient.newBuilder().build();
+
         final var request = HttpRequest.newBuilder(URI.create("http://" + sourceSchemaRegistry.getContainerIpAddress() + ":" + sourceSchemaRegistry.getMappedPort(8081) + "/subjects")).build();
         final var response = client.send(request, HttpResponse.BodyHandlers.ofString());
         System.out.println(response);
