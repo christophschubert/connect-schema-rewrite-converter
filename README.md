@@ -13,6 +13,13 @@ Confluent Replicator calls the following methods for a replicated message:
 Since we need to register the schema to a subject on the destination cluster, the transformation logic is best placed into the `fromConnecData` method.
 In this way, `toConnectData` becomes basically a no-op.
 
+### Installation
+
+The following two packages need to be compiled locally for the integration tests in the `src/intTest` folder to work:
+
+* https://github.com/christophschubert/cp-testcontainers
+* https://github.com/christophschubert/kafka-connect-java-client
+
 ### Known limitations
 
 * the only supported `SubjectNamingStrategy` is `TopicNamingStrategy`
