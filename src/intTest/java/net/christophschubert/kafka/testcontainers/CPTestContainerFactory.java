@@ -4,7 +4,9 @@ import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
 
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 
 public class CPTestContainerFactory {
 
@@ -42,6 +44,16 @@ public class CPTestContainerFactory {
 
     public KafkaConnectContainer createReplicator(KafkaContainer bootstrap) {
         return new KafkaConnectContainer(imageName("cp-enterprise-replicator"), bootstrap, network);
+    }
+
+    public KafkaConnectContainer createCustomConnector(String hubConnector, KafkaContainer bootstrap) {
+        return createCustomConnector(Collections.singleton(hubConnector), bootstrap);
+    }
+
+    public KafkaConnectContainer createCustomConnector(Set<String> hubComponents, KafkaContainer bootstrap) {
+        final var baseImageName = repository + "/cp-kafka-connect-base:" + tag;
+        final var image = KafkaConnectContainer.customImage(hubComponents, baseImageName);
+        return new KafkaConnectContainer(image, bootstrap, network).withEnv("CONNECT_PLUGIN_PATH", "/usr/share/confluent-hub-components");
     }
 
     // TODO: add ksqlDB container

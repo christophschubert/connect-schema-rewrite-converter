@@ -3,6 +3,7 @@ package net.christophschubert.kafka.testcontainers;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.images.builder.ImageFromDockerfile;
 import org.testcontainers.utility.DockerImageName;
 
 /**
@@ -19,4 +20,10 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
         withNetwork(network);
     }
 
+    CPTestContainer(ImageFromDockerfile dockerImage, KafkaContainer bootstrap, Network network) {
+        super(dockerImage);
+
+        dependsOn(bootstrap);
+        withNetwork(network);
+    }
 }

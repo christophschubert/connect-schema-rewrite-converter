@@ -31,9 +31,12 @@ public class ConnectClient {
                 .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(config)))
                 .header("Content-Type", "application/json")
                 .build();
+        System.out.println("submitting config: " + mapper.writeValueAsString(config));
         logger.info("submitting config: " + mapper.writeValueAsString(config));
         final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println(response);
         logger.info(response.toString());
+        System.out.println(response.body());
     }
 
     public List<String> getConnectors() {

@@ -47,11 +47,15 @@ dependencies {
     compile group: 'io.confluent', name: 'kafka-avro-serializer', version: '6.0.0'
 
 
-    intTestImplementation "org.testcontainers:testcontainers:1.15.0"
-    intTestImplementation "org.testcontainers:kafka:1.15.0"
+    intTestImplementation "org.testcontainers:testcontainers:1.15.1"
+    intTestImplementation "org.testcontainers:kafka:1.15.1"
     intTestImplementation "org.testcontainers:localstack:1.15.1"
+    intTestImplementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.11.926'
+    intTestImplementation group: 'software.amazon.awssdk', name: 's3', version: '2.15.53'
 
-    intTestImplementation "org.testcontainers:junit-jupiter:1.15.0"
+
+
+    intTestImplementation "org.testcontainers:junit-jupiter:1.15.1"
 
     // for Connect client
     intTestImplementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.10.3'
