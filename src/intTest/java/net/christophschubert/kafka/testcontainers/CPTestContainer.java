@@ -18,4 +18,5 @@ abstract public class CPTestContainer<SELF extends GenericContainer<SELF>> exten
         dependsOn(bootstrap);
         withNetwork(network);
     }
+
 }

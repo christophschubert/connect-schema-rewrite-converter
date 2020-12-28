@@ -127,16 +127,12 @@ public class FirstTest {
         final AdminClient adminClient = KafkaAdminClient.create(Map.of(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, sourceKafka.getBootstrapServers()));
         adminClient.createTopics(List.of(new NewTopic("data.topic", Optional.empty(), Optional.empty()))).all().get();
 
-        final var replicatorConfig = new ConnectorConfig("replicator-data", Map.of(
-                "connector.class", "io.confluent.connect.replicator.ReplicatorSourceConnector",
-                "topic.regex", "data\\..*",
-                "topic.rename.format", "${topic}.replica",
-                "key.converter", "io.confluent.connect.replicator.util.ByteArrayConverter",
-                "value.converter", "io.confluent.connect.replicator.util.ByteArrayConverter",
-                "src.kafka.bootstrap.servers", CPTestContainer.getInternalBootstrap(sourceKafka),
-                "src.consumer.group.id", "replicator",
-                "dest.topic.replication.factor", 1
-        ));
+        final var replicatorConfig = ConnectorConfig.source("replicator-data", "io.confluent.connect.replicator.ReplicatorSourceConnector")
+                .withTopicRegex("data\\..*")
+                .with("topic.rename.format", "${topic}.replica")
+                .withKeyConverter("io.confluent.connect.replicator.util.ByteArrayConverter")
+                .withValueConverter("io.confluent.connect.replicator.util.ByteArrayConverter")
+                .with("src.kafka.bootstrap.servers", CPTestContainer.getInternalBootstrap(sourceKafka));
 
         final ConnectClient connectClient = new ConnectClient(replicatorContainer.getBaseUrl());
         connectClient.startConnector(replicatorConfig);
@@ -209,18 +205,14 @@ public class FirstTest {
         adminClient.createTopics(List.of(new NewTopic("some.topic", Optional.empty(), Optional.empty()))).all().get();
 
 
-        final var replicatorConfig = new ConnectorConfig("replicator-data", Map.of(
-                "connector.class", "io.confluent.connect.replicator.ReplicatorSourceConnector",
-                "topic.regex", "data\\..*",
-                "topic.rename.format", "${topic}.replica",
-                "key.converter", "io.confluent.connect.replicator.util.ByteArrayConverter",
-                "value.converter", "net.christophschubert.kafka.connect.converter.SchemaIdRewriteConverter",
-                "value.converter.source.schema.registry.url", sourceSchemaRegistry.getInternalBaseUrl(),
-                "value.converter.destination.schema.registry.url", destinationSchemaRegistry.getInternalBaseUrl(),
-                "src.kafka.bootstrap.servers", CPTestContainer.getInternalBootstrap(sourceKafka),
-                "src.consumer.group.id", "replicator",
-                "dest.topic.replication.factor", 1
-        ));
+        final var replicatorConfig = ConnectorConfig.source("replicator-data", "io.confluent.connect.replicator.ReplicatorSourceConnector")
+                .withTopicRegex("data\\..*")
+                .with("topic.rename.format", "${topic}.replica")
+                .withKeyConverter("io.confluent.connect.replicator.util.ByteArrayConverter")
+                .withValueConverter("net.christophschubert.kafka.connect.converter.SchemaIdRewriteConverter")
+                .with("value.converter.source.schema.registry.url", sourceSchemaRegistry.getInternalBaseUrl())
+                .with("value.converter.destination.schema.registry.url", destinationSchemaRegistry.getInternalBaseUrl())
+                .with("src.kafka.bootstrap.servers", CPTestContainer.getInternalBootstrap(sourceKafka));
 
         final ConnectClient connectClient = new ConnectClient(replicatorContainer.getBaseUrl());
         connectClient.startConnector(replicatorConfig);
@@ -261,24 +253,27 @@ public class FirstTest {
         final var orderRecord = new GenericRecordBuilder(t).set("product", "container").set("quantity", 12).build();
         producer.send(new ProducerRecord<>("some.topic", "order", orderRecord));
 
-        for (int i = 0; i < 30; i++) {
+        final var totalMessageCount = 20;
+        for (int i = 0; i < totalMessageCount; ++i) {
             final var record = new GenericRecordBuilder(s).set("email", "peter@a.com").set("age", i + 18).build();
-            final var o1 = producer.send(new ProducerRecord<>("data.topic", "user", record));
-            System.out.println(o1);
+            producer.send(new ProducerRecord<>("data.topic", "user", record));
+
         }
         producer.flush(); //remember to flush, otherwise tests will get pretty flaky
 
-        System.out.println("produced");
 
-        //TODO: add assertions
+
+        var msgCount = 0;
         while (!waiter.found) {
             for (int i = 0; i < 2; i++) { // jumping through some hoops to ensure that (async) replication has token place
                 final ConsumerRecords<String, GenericRecord> records = consumer.poll(Duration.ofMillis(5000));
                 for (ConsumerRecord<String, GenericRecord> record : records) {
-                    System.out.println("FROM DESTINATION: " + record.value());
+                    Assert.assertEquals("peter@a.com", record.value().get("email").toString());
+                    ++msgCount;
                 }
             }
         }
+        Assert.assertEquals(totalMessageCount, msgCount);
     }
 
 

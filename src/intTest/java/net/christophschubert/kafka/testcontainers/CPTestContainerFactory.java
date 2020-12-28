@@ -35,6 +35,7 @@ public class CPTestContainerFactory {
         return new SchemaRegistryContainer(imageName("cp-schema-registry"), bootstrap, network);
     }
 
+    //TODO: write proper test for this
     public KafkaConnectContainer createKafkaConnect(KafkaContainer bootstrap) {
         return new KafkaConnectContainer(imageName("cp-kafka-connect"), bootstrap, network);
     }
@@ -42,4 +43,10 @@ public class CPTestContainerFactory {
     public KafkaConnectContainer createReplicator(KafkaContainer bootstrap) {
         return new KafkaConnectContainer(imageName("cp-enterprise-replicator"), bootstrap, network);
     }
+
+    // TODO: add ksqlDB container
+
+    // TODO: add REST proxy container
+
+    // TODO: move to separate project
 }

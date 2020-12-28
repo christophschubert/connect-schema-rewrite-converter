@@ -38,7 +38,7 @@ public class KafkaConnectContainer extends CPTestContainer<KafkaConnectContainer
     }
 
     public String getBaseUrl() {
-       return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(defaultPort)); //TODO: finish!
+       return String.format("http://%s:%d", getContainerIpAddress(), getMappedPort(defaultPort));
 
     }
 }

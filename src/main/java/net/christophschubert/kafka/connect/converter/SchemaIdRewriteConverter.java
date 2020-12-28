@@ -22,7 +22,7 @@ public class SchemaIdRewriteConverter implements Converter {
         logger.info(configs.toString());
 
 
-
+        //TODO: use constants for field-names
         rewriter = new SchemaIdRewriter(new CachedSchemaRegistryClient(configs.get("source.schema.registry.url").toString(), 10), new
                 CachedSchemaRegistryClient(configs.get("destination.schema.registry.url").toString(), 10), isKey);
     }

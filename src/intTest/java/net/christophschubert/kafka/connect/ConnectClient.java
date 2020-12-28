@@ -1,15 +1,20 @@
 package net.christophschubert.kafka.connect;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Collections;
+import java.util.List;
 
 public class ConnectClient {
+
+    final static Logger logger = LoggerFactory.getLogger(ConnectClient.class);
 
     private final String baseUrl;
     private final HttpClient httpClient;
@@ -26,7 +31,12 @@ public class ConnectClient {
                 .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(config)))
                 .header("Content-Type", "application/json")
                 .build();
+        logger.info("submitting config: " + mapper.writeValueAsString(config));
         final var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        System.out.println(response);
+        logger.info(response.toString());
+    }
+
+    public List<String> getConnectors() {
+        return Collections.emptyList(); //TODO: implement
     }
 }
