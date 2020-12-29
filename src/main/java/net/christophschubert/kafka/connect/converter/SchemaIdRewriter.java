@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,17 +19,24 @@ public class SchemaIdRewriter {
 
     private final SchemaRegistryClient srcClient;
     private final SchemaRegistryClient destClient;
+    private final SubjectNameStrategy nameStrategy;
+    private final boolean isKey;
+    private final boolean failOnUnknownMagicByte;
 
-    private final SubjectNameStrategy nameStrategy = new TopicNameStrategy();
+    private final Map<Integer, Integer> idMapping = new HashMap<>();
 
-    public SchemaIdRewriter(SchemaRegistryClient srcClient, SchemaRegistryClient destClient, boolean isKey) {
+    public SchemaIdRewriter(SchemaRegistryClient srcClient, SchemaRegistryClient destClient, boolean isKey, boolean failOnUnknownMagicByte) {
+        this(srcClient, destClient, isKey, failOnUnknownMagicByte, new TopicNameStrategy());
+    }
+
+    public SchemaIdRewriter(SchemaRegistryClient srcClient, SchemaRegistryClient destClient, boolean isKey, boolean failOnUnknownMagicByte, SubjectNameStrategy subjectNameStrategy) {
         this.srcClient = srcClient;
         this.destClient = destClient;
         this.isKey = isKey;
+        this.failOnUnknownMagicByte = failOnUnknownMagicByte;
+        this.nameStrategy = subjectNameStrategy;
     }
 
-    private final boolean isKey;
-    private final Map<Integer, Integer> idMapping = new HashMap<>();
 
     /**
      * Modifies the value parameter inplace by looking up a schema from the source schema registry and replacing the
@@ -39,8 +47,16 @@ public class SchemaIdRewriter {
      */
     public byte[] rewriteId(String topic, byte[] value) {
         final ByteBuffer buffer = ByteBuffer.wrap(value);
-
-        //TODO: do we have to fix byte order? I remember it is platform dependent
+        if (buffer.get(0) != 0) {
+            // so far, we only have one format version (magic-byte == 0)
+            if (failOnUnknownMagicByte) {
+                final String msg = String.format("Unknown magic byte '%d' in topic '%s'.", buffer.get(0), topic);
+                throw new DataException(msg);
+            }
+            logger.debug("Unknown magic byte '{}' in topic {}, not attempting to rewrite", buffer.get(0), topic);
+            return value;
+        }
+        buffer.order(ByteOrder.BIG_ENDIAN); //ensure standard network byte order
         final int originalId = buffer.getInt(1);
         final var newId = idMapping.computeIfAbsent(originalId, oId -> reRegister(topic, oId));
 
@@ -57,8 +73,9 @@ public class SchemaIdRewriter {
             logger.info("rewrote ID {} -> {} for subject '{}'", originalId, newId, subject);
             return newId;
         } catch (IOException | RestClientException e) {
-            logger.error("error handling schema", e);
-            throw new DataException(e);
+            final String msg = String.format("error handling schema for topic '%s' with id %d", topic, originalId);
+            logger.error(msg, e);
+            throw new DataException(msg, e);
         }
     }
 }
