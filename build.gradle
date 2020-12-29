@@ -47,6 +47,7 @@ dependencies {
 
     compile group: 'io.confluent', name: 'kafka-avro-serializer', version: '6.0.0'
 
+    compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.29'
 
     intTestImplementation "net.christophschubert:cp-testcontainers:0.1.0-SNAPSHOT"
     intTestImplementation "net.christophschubert:kafka-connect-java-client:0.1.0-SNAPSHOT"

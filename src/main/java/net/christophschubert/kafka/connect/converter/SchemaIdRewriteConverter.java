@@ -34,8 +34,6 @@ public class SchemaIdRewriteConverter implements Converter {
     public void configure(Map<String, ?> configs, boolean isKey) {
         logger.info(configs.toString());
 
-
-
         rewriter = new SchemaIdRewriter(
                     new CachedSchemaRegistryClient(configs.get(SOURCE_SCHEMA_REGISTRY_URL_CONFIG).toString(), 10),
                     new CachedSchemaRegistryClient(configs.get(DESTINATION_SCHEMA_REGISTRY_URL_CONFIG).toString(), 10),

@@ -37,29 +37,32 @@ public class SchemaIdRewriter {
         this.nameStrategy = subjectNameStrategy;
     }
 
+    static final int magicBytePosition = 0; // as specified by the schema registry wire format
+    static final int schemaIdPosition = 1;
+
 
     /**
-     * Modifies the value parameter inplace by looking up a schema from the source schema registry and replacing the
+     * Modifies the value parameter in-place by looking up a schema from the source schema registry and replacing the
      * it with corresponding ID in the destination schema registry.
-     * @param topic
-     * @param value
-     * @return
+     * @param topic topic name in the destination cluster
+     * @param value serialized byte array of the message
+     * @return a serialized value with rewritten schema ID.
      */
     public byte[] rewriteId(String topic, byte[] value) {
         final ByteBuffer buffer = ByteBuffer.wrap(value);
-        if (buffer.get(0) != 0) {
+        if (buffer.get(magicBytePosition) != 0) {
             // so far, we only have one format version (magic-byte == 0)
             if (failOnUnknownMagicByte) {
-                final String msg = String.format("Unknown magic byte '%d' in topic '%s'.", buffer.get(0), topic);
+                final String msg = String.format("Unknown magic byte '%d' in topic '%s'.", buffer.get(magicBytePosition), topic);
                 throw new DataException(msg);
             }
-            logger.debug("Unknown magic byte '{}' in topic {}, not attempting to rewrite", buffer.get(0), topic);
+            logger.debug("Unknown magic byte '{}' in topic {}, not attempting to rewrite", buffer.get(magicBytePosition), topic);
             return value;
         }
         buffer.order(ByteOrder.BIG_ENDIAN); //ensure standard network byte order
-        final int originalId = buffer.getInt(1);
+        final int originalId = buffer.getInt(schemaIdPosition);
         final var newId = idMapping.computeIfAbsent(originalId, oId -> reRegister(topic, oId));
-        buffer.putInt(1, newId);
+        buffer.putInt(schemaIdPosition, newId);
         if (logger.isTraceEnabled()) {
             logger.trace("rewrote id {} -> {} on topic {}", originalId, newId, topic);
         }
