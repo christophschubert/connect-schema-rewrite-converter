@@ -59,18 +59,19 @@ public class SchemaIdRewriter {
         buffer.order(ByteOrder.BIG_ENDIAN); //ensure standard network byte order
         final int originalId = buffer.getInt(1);
         final var newId = idMapping.computeIfAbsent(originalId, oId -> reRegister(topic, oId));
-
         buffer.putInt(1, newId);
+        if (logger.isTraceEnabled()) {
+            logger.trace("rewrote id {} -> {} on topic {}", originalId, newId, topic);
+        }
         return buffer.array();
     }
 
     int reRegister(String topic, int originalId) {
         try {
             final var schema = srcClient.getSchemaById(originalId);
-            // TODO: how to handle null schema? can this happen or will an exception by thrown?
             final String subject = nameStrategy.subjectName(topic, isKey, schema);
             final var newId = destClient.register(subject, schema);
-            logger.info("rewrote ID {} -> {} for subject '{}'", originalId, newId, subject);
+            logger.info("Re-registered schema {} -> {} for subject '{}'", originalId, newId, subject);
             return newId;
         } catch (IOException | RestClientException e) {
             final String msg = String.format("error handling schema for topic '%s' with id %d", topic, originalId);
