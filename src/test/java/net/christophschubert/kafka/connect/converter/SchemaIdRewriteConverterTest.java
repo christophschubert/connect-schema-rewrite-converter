@@ -11,7 +11,7 @@ class SchemaIdRewriteConverterTest {
 
     @Test
     public void onlySingleTopicSelectionOption() {
-        final var config = Map.of(SchemaIdRewriteConverter.TOPIC_BLACKLIST_CONFIG, "a,b", SchemaIdRewriteConverter.TOPIC_WHITELIST_CONFIG, "x,y");
+        final var config = Map.of(SchemaIdRewriteConverter.TOPIC_EXCLUDE_CONFIG, "a,b", SchemaIdRewriteConverter.TOPIC_INCLUDE_CONFIG, "x,y");
         final var converter = new SchemaIdRewriteConverter();
 
         assertThrows(ConfigException.class, () -> converter.configure(config, false));
