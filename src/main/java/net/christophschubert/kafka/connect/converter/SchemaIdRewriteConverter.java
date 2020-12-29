@@ -15,22 +15,27 @@ public class SchemaIdRewriteConverter implements Converter {
 
     private final static Logger logger = LoggerFactory.getLogger(SchemaIdRewriteConverter.class);
 
+    public final static String SOURCE_SCHEMA_REGISTRY_URL_CONFIG = "source.schema.registry.url";
+    public final static String DESTINATION_SCHEMA_REGISTRY_URL_CONFIG = "destination.schema.registry.url";
+
+
+    private final static ConfigDef configDef = new ConfigDef()
+            .define(SOURCE_SCHEMA_REGISTRY_URL_CONFIG, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "source schema registry URL")
+            .define(DESTINATION_SCHEMA_REGISTRY_URL_CONFIG, ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "destination schema registry URL");
+
+
     private SchemaIdRewriter rewriter;
 
     @Override
     public void configure(Map<String, ?> configs, boolean isKey) {
         logger.info(configs.toString());
 
-
-        //TODO: use constants for field-names
-        rewriter = new SchemaIdRewriter(new CachedSchemaRegistryClient(configs.get("source.schema.registry.url").toString(), 10), new
-                CachedSchemaRegistryClient(configs.get("destination.schema.registry.url").toString(), 10), isKey);
+        rewriter = new SchemaIdRewriter(
+                    new CachedSchemaRegistryClient(configs.get(SOURCE_SCHEMA_REGISTRY_URL_CONFIG).toString(), 10),
+                    new CachedSchemaRegistryClient(configs.get(DESTINATION_SCHEMA_REGISTRY_URL_CONFIG).toString(), 10),
+                    isKey
+        );
     }
-
-    private final static ConfigDef configDef = new ConfigDef()
-            .define("source.schema.registry.url", ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "source schema registry URL")
-            .define("destination.schema.registry.url", ConfigDef.Type.STRING, ConfigDef.Importance.HIGH, "source schema registry URL");
-
 
     public ConfigDef config() {
         return configDef;
@@ -38,9 +43,13 @@ public class SchemaIdRewriteConverter implements Converter {
 
     @Override
     public byte[] fromConnectData(String topic, Schema schema, Object value) {
-        //TODO: check whether schema is of proper type
-        if (! (value instanceof byte[]))
-            throw new DataException("cannot convert");
+        if (! schema.equals(Schema.BYTES_SCHEMA)) {
+            final var msg = String.format("cannot convert: wrong input schema (%s), expecting Schema.BYTES_SCHEMA", schema.toString());
+            throw new DataException(msg);
+        }
+        if (! (value instanceof byte[])) {
+            throw new DataException("cannot convert: input object is not an instance of byte[]");
+        }
         return rewriter.rewriteId(topic, (byte[])value);
     }
 
