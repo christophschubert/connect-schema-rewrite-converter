@@ -104,7 +104,7 @@ services:
       - ./build/libs:/extras
     environment:
       CLASSPATH: /usr/share/replicator/kafka-connect-replicator/replicator-rest-extension-6.0.1.jar;/extras/connect-schema-rewrite-converter-1.0-SNAPSHOT.jar
-      CONNECT_BOOTSTRAP_SERVERS: kafkaB:9092
+      CONNECT_BOOTSTRAP_SERVERS: kafkaB:19092
       CONNECT_REST_PORT: 8083
       CONNECT_LISTENERS: "http://0.0.0.0:8083"
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs

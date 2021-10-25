@@ -14,5 +14,6 @@
     "dest.topic.replication.factor": 1,
     "dest.kafka.bootstrap.servers": "kafkaB:19092",
     "producer.override.bootstrap.servers": "kafkaB:19092"
+ , "confluent.topic.replication.factor": 1 
   }
 }
