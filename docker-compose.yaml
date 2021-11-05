@@ -92,7 +92,7 @@ services:
       SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8082"
 
   connect:
-    image: confluentinc/cp-server-connect:6.0.1
+    image: confluentinc/cp-enterprise-replicator:6.0.1
     container_name: connect
     restart: always
     ports:
@@ -100,36 +100,23 @@ services:
     depends_on:
       - kafkaB
     volumes:
-      - mi3:/usr/share/replicator/kafka-connect-replicator/
       - ./build/libs:/extras
     environment:
-      CLASSPATH: /usr/share/replicator/kafka-connect-replicator/replicator-rest-extension-6.0.1.jar;/extras/connect-schema-rewrite-converter-1.0-SNAPSHOT.jar
+      CLASSPATH: /usr/share/java/kafka-connect-replicator/*:/extras/connect-schema-rewrite-converter-1.0-SNAPSHOT.jar
       CONNECT_BOOTSTRAP_SERVERS: kafkaB:19092
       CONNECT_REST_PORT: 8083
-      CONNECT_LISTENERS: "http://0.0.0.0:8083"
+      CONNECT_LISTENERS: http://0.0.0.0:8083
       CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
       CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
       CONNECT_STATUS_STORAGE_TOPIC: connect-statuses
-      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
-      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
-      CONNECT_GROUP_ID: "connect"
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_GROUP_ID: connect
       CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
       CONNECT_REST_ADVERTISED_HOST_NAME: "connect"
-      CONNECT_PLUGIN_PATH: "/usr/share/replicator,/extras"
+      CONNECT_PLUGIN_PATH: /usr/share/java/kafka-connect-replicator,/extras
       CONNECT_REPLICATION_FACTOR: 1
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: All
-
-
-  replicator-for-jar-transfer:
-    image: confluentinc/cp-enterprise-replicator:6.0.1
-    hostname: replicator-for-jar-transfer
-    container_name: replicator-for-jar-transfer
-    volumes:
-      - mi3:/usr/share/java/kafka-connect-replicator/
-    command: "sleep infinity"
-
-volumes:
-  mi3: {}
