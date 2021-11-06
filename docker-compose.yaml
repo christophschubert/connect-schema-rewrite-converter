@@ -2,19 +2,19 @@
 version: '3.4'
 services:
   zookeeperA:
-    image: confluentinc/cp-zookeeper:6.0.1
+    image: ${REPOSITORY}/cp-zookeeper:${TAG}
     hostname: zookeeperA
     container_name: zookeeperA
     environment:
       ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_SERVERS: zookeeperA:2888:3888
       KAFKA_JMX_PORT: 9999
       KAFKA_JMX_HOSTNAME: localhost
 
   kafkaA:
-    image: confluentinc/cp-enterprise-kafka:6.0.1
+    image: ${REPOSITORY}/cp-server:${TAG}
     hostname: kafkaA
     container_name: kafkaA
     depends_on:
@@ -34,32 +34,32 @@ services:
       - 9091:9091
 
   schema-registryA:
-    image: confluentinc/cp-schema-registry:6.0.1
+    image: ${REPOSITORY}/cp-schema-registry:${TAG}
     hostname: schema-registryA
     container_name: schema-registryA
     depends_on:
       - kafkaA
     ports:
-      - "8081:8081"
+      - 8081:8081
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafkaA:19091
-      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
 
   zookeeperB:
-    image: confluentinc/cp-zookeeper:6.0.1
+    image: ${REPOSITORY}/cp-zookeeper:${TAG}
     hostname: zookeeperB
     container_name: zookeeperB
     environment:
       ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_CLIENT_PORT: 2182
-      ZOOKEEPER_TICK_TIME: "2000"
+      ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_SERVERS: zookeeperB:2888:3888
       KAFKA_JMX_PORT: 9999
       KAFKA_JMX_HOSTNAME: localhost
 
   kafkaB:
-    image: confluentinc/cp-enterprise-kafka:6.0.1
+    image: ${REPOSITORY}/cp-server:${TAG}
     hostname: kafkaB
     container_name: kafkaB
     depends_on:
@@ -79,7 +79,7 @@ services:
       - 9092:9092
 
   schema-registryB:
-    image: confluentinc/cp-schema-registry:6.0.1
+    image: ${REPOSITORY}/cp-schema-registry:${TAG}
     hostname: schema-registryB
     container_name: schema-registryB
     depends_on:
@@ -89,10 +89,10 @@ services:
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafkaB:19092
-      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8082"
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8082
 
   connect:
-    image: confluentinc/cp-enterprise-replicator:6.0.1
+    image: ${REPOSITORY}/cp-server-replicator:${TAG}
     container_name: connect
     restart: always
     ports:
@@ -113,9 +113,8 @@ services:
       CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
       CONNECT_GROUP_ID: connect
       CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
-      CONNECT_REST_ADVERTISED_HOST_NAME: "connect"
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
       CONNECT_PLUGIN_PATH: /usr/share/java/kafka-connect-replicator,/extras
-      CONNECT_REPLICATION_FACTOR: 1
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
