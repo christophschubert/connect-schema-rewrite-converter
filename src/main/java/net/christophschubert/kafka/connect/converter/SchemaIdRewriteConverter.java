@@ -1,6 +1,10 @@
 package net.christophschubert.kafka.connect.converter;
 
+import io.confluent.kafka.schemaregistry.SchemaProvider;
+import io.confluent.kafka.schemaregistry.avro.AvroSchemaProvider;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.json.JsonSchemaProvider;
+import io.confluent.kafka.schemaregistry.protobuf.ProtobufSchemaProvider;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -12,7 +16,9 @@ import org.apache.kafka.connect.storage.Converter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -34,7 +40,7 @@ public class SchemaIdRewriteConverter implements Converter {
     private final static String exclusionMessage = String.format("Only one of `%s`, `%s`, and `%s` can be specified.", TOPIC_INCLUDE_CONFIG, TOPIC_EXCLUDE_CONFIG, TOPIC_REGEX_CONFIG);
 
     //TODO: add config properties for schema registry (e.g. authentication)
-
+    //could be modeled after: https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/AbstractKafkaSchemaSerDeConfig.java
     private final static ConfigDef configDef = new ConfigDef()
             .define(SOURCE_SCHEMA_REGISTRY_URL_CONFIG, Type.STRING, Importance.HIGH, "source schema registry URL")
             .define(DESTINATION_SCHEMA_REGISTRY_URL_CONFIG, Type.STRING, Importance.HIGH, "destination schema registry URL")
@@ -45,6 +51,9 @@ public class SchemaIdRewriteConverter implements Converter {
 
     private SchemaIdRewriter rewriter;
     private Predicate<String> topicNameFilter = s -> true;
+
+    //TODO: comment this, also in README
+    private final static List<SchemaProvider> allProviders = List.of(new AvroSchemaProvider(), new ProtobufSchemaProvider(), new JsonSchemaProvider());
 
     Set<String> splitConfigList(String commaSeparatedFields) {
         return Arrays.stream(commaSeparatedFields.split(",")).map(String::trim).filter(Predicate.not(String::isEmpty)).collect(Collectors.toSet());
@@ -73,11 +82,28 @@ public class SchemaIdRewriteConverter implements Converter {
         }
 
         rewriter = new SchemaIdRewriter(
-                    new CachedSchemaRegistryClient(configs.get(SOURCE_SCHEMA_REGISTRY_URL_CONFIG).toString(), 10),
-                    new CachedSchemaRegistryClient(configs.get(DESTINATION_SCHEMA_REGISTRY_URL_CONFIG).toString(), 10),
+                buildSrClient(configs.get(SOURCE_SCHEMA_REGISTRY_URL_CONFIG).toString()),
+                    buildSrClient(configs.get(DESTINATION_SCHEMA_REGISTRY_URL_CONFIG).toString()),
                     isKey,
-                    (boolean)configs.get(FAIL_ON_UNKNOWN_MAGIC_BYTE_CONFIG)
+                    saveParseBoolean(configs.get(FAIL_ON_UNKNOWN_MAGIC_BYTE_CONFIG))
         );
+    }
+
+    CachedSchemaRegistryClient buildSrClient(String url) {
+        return new CachedSchemaRegistryClient(List.of(url), 10, allProviders, null);
+    }
+    //TODO: double check code & write test case
+    boolean saveParseBoolean(Object o) {
+        if (o == null) {
+            return false; // TODO: change to default value
+        }
+        if (o instanceof Boolean) {
+            return (boolean) o;
+        }
+        if (o instanceof String) {
+            return Boolean.parseBoolean((String)o);
+        }
+        return false;
     }
 
     public ConfigDef config() {
@@ -86,8 +112,8 @@ public class SchemaIdRewriteConverter implements Converter {
 
     @Override
     public byte[] fromConnectData(String topic, Schema schema, Object value) {
-        if (! schema.equals(Schema.BYTES_SCHEMA)) {
-            final var msg = String.format("cannot convert: wrong input schema (%s), expecting Schema.BYTES_SCHEMA", schema.toString());
+        if (! (schema.equals(Schema.BYTES_SCHEMA) || schema.equals(Schema.OPTIONAL_BYTES_SCHEMA) )) {
+            final var msg = String.format("cannot convert: wrong input schema (%s), topic '%s', expecting Schema.BYTES_SCHEMA", schema, topic);
             throw new DataException(msg);
         }
         if (! (value instanceof byte[])) {

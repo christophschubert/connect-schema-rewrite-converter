@@ -1,0 +1,16 @@
+{
+  "name": "replicator-scenario-1",
+  "config": {
+    "connector.class": "io.confluent.connect.replicator.ReplicatorSourceConnector",
+    "topic.whitelist": "user",
+    "topic.rename.format": "${topic}.replica",
+    "key.converter": "io.confluent.connect.replicator.util.ByteArrayConverter",
+    "value.converter": "net.christophschubert.kafka.connect.converter.SchemaIdRewriteConverter",
+    "value.converter.source.schema.registry.url": "http://schema-registryA:8081",
+    "value.converter.destination.schema.registry.url": "http://schema-registryB:8082",
+    "src.kafka.bootstrap.servers": "kafkaA:19091",
+    "src.consumer.group.id": "replicator",
+    "dest.kafka.bootstrap.servers": "kafkaB:19092",
+    "confluent.topic.replication.factor": 1
+  }
+}

@@ -14,7 +14,7 @@ services:
       KAFKA_JMX_HOSTNAME: localhost
 
   kafkaA:
-    image: ${REPOSITORY}/cp-server:${TAG}
+    image: ${REPOSITORY}/cp-enterprise-kafka:${TAG}
     hostname: kafkaA
     container_name: kafkaA
     depends_on:
@@ -59,7 +59,7 @@ services:
       KAFKA_JMX_HOSTNAME: localhost
 
   kafkaB:
-    image: ${REPOSITORY}/cp-server:${TAG}
+    image: ${REPOSITORY}/cp-enterprise-kafka:${TAG}
     hostname: kafkaB
     container_name: kafkaB
     depends_on:
@@ -92,7 +92,7 @@ services:
       SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8082
 
   connect:
-    image: ${REPOSITORY}/cp-server-replicator:${TAG}
+    image: ${REPOSITORY}/cp-enterprise-replicator:${TAG}
     container_name: connect
     restart: always
     ports:
@@ -100,7 +100,7 @@ services:
     depends_on:
       - kafkaB
     volumes:
-      - ./build/libs:/extras
+      - ../build/libs:/extras
     environment:
       CLASSPATH: /usr/share/java/kafka-connect-replicator/*:/extras/connect-schema-rewrite-converter-1.0-SNAPSHOT.jar
       CONNECT_BOOTSTRAP_SERVERS: kafkaB:19092

@@ -1,0 +1,1 @@
+{"namespace": "clients.avro", "type": "record","name": "User", "fields": [{"name": "user", "type": "string" },{"name": "id", "type": "int" }]}

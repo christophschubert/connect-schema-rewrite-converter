@@ -45,7 +45,7 @@ import java.util.concurrent.ExecutionException;
 
 public class AvroIntegrationTest {
 
-    @Test
+//    @Test
     public void setupConnectWithSchemaRegAndCustomConverter() throws InterruptedException, IOException, ExecutionException {
 
         final var testContainerFactory = new CPTestContainerFactory();

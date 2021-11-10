@@ -1,5 +1,6 @@
 package net.christophschubert.kafka.connect.converter;
 
+import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.kafka.serializers.subject.TopicNameStrategy;
@@ -72,6 +73,7 @@ public class SchemaIdRewriter {
     int reRegister(String topic, int originalId) {
         try {
             final var schema = srcClient.getSchemaById(originalId);
+            logger.info("got schema {} for topic {}", schema, topic);
             final String subject = nameStrategy.subjectName(topic, isKey, schema);
             final var newId = destClient.register(subject, schema);
             logger.info("Re-registered schema {} -> {} for subject '{}'", originalId, newId, subject);

@@ -1,0 +1,7 @@
+{
+  "type": "object",
+  "title": "user",
+  "properties": {
+  "name": { "type": "string" },
+  "id": { "type": "number" } }
+}
