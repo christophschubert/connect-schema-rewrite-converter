@@ -1,0 +1,1 @@
+{"schema": "{\"namespace\": \"clients.avro\", \"type\": \"record\",\"name\": \"Order\", \"fields\": [{\"name\": \"product_name\", \"type\": \"string\" }]}"}

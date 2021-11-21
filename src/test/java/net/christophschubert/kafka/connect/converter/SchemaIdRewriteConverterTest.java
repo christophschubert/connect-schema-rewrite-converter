@@ -17,4 +17,14 @@ class SchemaIdRewriteConverterTest {
         assertThrows(ConfigException.class, () -> converter.configure(config, false));
     }
 
+    //just to try out things
+    @Test
+    public void testConfigDef() {
+        final var converter = new SchemaIdRewriteConverter();
+        converter.configure(Map.of(
+                "destination.schema.registry.url", "localhost:8082",
+                "source.schema.registry.url", "localhost:8081",
+                "source.schema.registry.baoc", "jurz"
+        ), false);
+    }
 }

@@ -1,0 +1,23 @@
+{
+  "name": "replicator-scenario-4",
+  "config": {
+    "connector.class": "io.confluent.connect.replicator.ReplicatorSourceConnector",
+    "topic.regex": "user",
+    "topic.rename.format": "${topic}.replica",
+    "key.converter": "io.confluent.connect.replicator.util.ByteArrayConverter",
+    "value.converter": "net.christophschubert.kafka.connect.converter.SchemaIdRewriteConverter",
+    "value.converter.source.schema.registry.url": "<CCLOUD_SR_URL>",
+    "value.converter.source.schema.registry.basic.auth.credentials.source": "USER_INFO",
+    "value.converter.source.schema.registry.basic.auth.user.info": "<CCLOUD_SR_API_KEY>:<CCLOUD_SR_API_SECRET>",
+    "value.converter.destination.schema.registry.url": "http://schema-registryB:8082",
+    "src.kafka.bootstrap.servers": "<CCLOUD_KAFKA_BOOTSTRAP>",
+    "src.kafka.ssl.endpoint.identification.algorithm": "https",
+    "src.kafka.security.protocol": "SASL_SSL",
+    "src.kafka.sasl.mechanism": "PLAIN",
+    "src.kafka.sasl.jaas.config":  "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"<CCLOUD_KAFKA_API_KEY>\" password=\"<CCLOUD_KAFKA_API_SECRET>\";",
+    "src.consumer.group.id": "replicator",
+    "confluent.topic.replication.factor": 1,
+    "topic.config.sync": false,
+    "topic.auto.create": false
+  }
+}

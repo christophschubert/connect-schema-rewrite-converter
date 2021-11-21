@@ -1,0 +1,1 @@
+{"namespace": "clients.avro", "type": "record","name": "User", "fields": [{"name": "user", "type": "string" },{"name": "id", "type": "int"},{"name":"email","type": ["null","string"], "default": null},{"name":"vip","type": "boolean","default": false}]}
