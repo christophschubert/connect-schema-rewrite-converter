@@ -23,9 +23,8 @@ The following two packages need to be compiled locally for the integration tests
 ### Known limitations
 
 * the only supported `SubjectNamingStrategy` is `TopicNamingStrategy`
-* authentication to schema registry is missing
 * SMTs which modify the topic name (e.g. RegexRouter) are not supported
 
 ### Todos/features to consider
-* add possibility to authenticate to schema registry
+
 * how can other SubjectNamingStrategies be implemented
