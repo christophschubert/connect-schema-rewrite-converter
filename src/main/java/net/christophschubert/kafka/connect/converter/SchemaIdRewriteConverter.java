@@ -64,7 +64,8 @@ public class SchemaIdRewriteConverter implements Converter {
     private SchemaIdRewriter rewriter;
     private Predicate<String> topicNameFilter = s -> true;
 
-    //TODO: comment this, also in README
+    //Providers for Avro, Protobuf, and JSON Schema are supported by default.
+    //In order to support custom schema types (or to restrict support to just some of the providers), this list should be edited:
     private final static List<SchemaProvider> allProviders = List.of(new AvroSchemaProvider(), new ProtobufSchemaProvider(), new JsonSchemaProvider());
 
     Set<String> splitConfigList(String commaSeparatedFields) {
@@ -95,9 +96,9 @@ public class SchemaIdRewriteConverter implements Converter {
 
         rewriter = new SchemaIdRewriter(
                 buildSrClient(configs, SOURCE_PREFIX),
-                    buildSrClient(configs, DESTINATION_PREFIX),
-                    isKey,
-                    saveParseBooleanDefaultTrue(configs.get(FAIL_ON_UNKNOWN_MAGIC_BYTE_CONFIG))
+                buildSrClient(configs, DESTINATION_PREFIX),
+                isKey,
+                saveParseBooleanDefaultTrue(configs.get(FAIL_ON_UNKNOWN_MAGIC_BYTE_CONFIG))
         );
     }
 
@@ -109,8 +110,7 @@ public class SchemaIdRewriteConverter implements Converter {
         return new CachedSchemaRegistryClient(urls, 10, allProviders, strippedConfigs);
     }
 
-    //TODO: double check code & write test case
-    boolean saveParseBooleanDefaultTrue(Object o) {
+    static boolean saveParseBooleanDefaultTrue(Object o) {
         if (o == null) {
             return true;
         }
@@ -127,6 +127,10 @@ public class SchemaIdRewriteConverter implements Converter {
         return configDef;
     }
 
+    public boolean shouldRewriteForTopic(String topicName) {
+        return topicNameFilter.test(topicName);
+    }
+
     @Override
     public byte[] fromConnectData(String topic, Schema schema, Object value) {
         if (! (schema.equals(Schema.BYTES_SCHEMA) || schema.equals(Schema.OPTIONAL_BYTES_SCHEMA) )) {
@@ -136,7 +140,7 @@ public class SchemaIdRewriteConverter implements Converter {
         if (! (value instanceof byte[])) {
             throw new DataException("cannot convert: input object is not an instance of byte[]");
         }
-        if (! topicNameFilter.test(topic)) {
+        if (! shouldRewriteForTopic(topic)) {
             return (byte[])value;
         }
         return rewriter.rewriteId(topic, (byte[])value);

@@ -24,6 +24,7 @@ The following two packages need to be compiled locally for the integration tests
 
 * the only supported `SubjectNamingStrategy` is `TopicNamingStrategy`
 * SMTs which modify the topic name (e.g. RegexRouter) are not supported
+* To support custom schema providers (e.g., new serialization formats), the `allProviders` field in the `SchemaIdRewriteConverter` class should be modified.
 
 ### Todos/features to consider
 
