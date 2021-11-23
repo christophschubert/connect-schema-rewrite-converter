@@ -27,8 +27,6 @@ public class SchemaIdRewriteConverter implements Converter {
 
     private final static Logger logger = LoggerFactory.getLogger(SchemaIdRewriteConverter.class);
 
-    public final static String SOURCE_SCHEMA_REGISTRY_URL_CONFIG = "source.schema.registry.url";
-    public final static String DESTINATION_SCHEMA_REGISTRY_URL_CONFIG = "destination.schema.registry.url";
     public final static String FAIL_ON_UNKNOWN_MAGIC_BYTE_CONFIG = "fail.on.unknown.magic.byte";
     public final static String TOPIC_INCLUDE_CONFIG = "topics.include";
     public final static String TOPIC_EXCLUDE_CONFIG = "topics.exclude";
@@ -36,8 +34,6 @@ public class SchemaIdRewriteConverter implements Converter {
 
     private final static String exclusionMessage = String.format("Only one of `%s`, `%s`, and `%s` can be specified.", TOPIC_INCLUDE_CONFIG, TOPIC_EXCLUDE_CONFIG, TOPIC_REGEX_CONFIG);
 
-    //TODO: add config properties for schema registry (e.g. authentication)
-    //could be modeled after: https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/AbstractKafkaSchemaSerDeConfig.java
     private final static ConfigDef configDef = new ConfigDef()
             .define(FAIL_ON_UNKNOWN_MAGIC_BYTE_CONFIG, Type.BOOLEAN, true, Importance.MEDIUM, "should converter fail on an unknown magic byte")
             .define(TOPIC_INCLUDE_CONFIG, Type.LIST, Importance.MEDIUM, "List of topics for which schemas will be rewritten. " + exclusionMessage)
@@ -47,6 +43,8 @@ public class SchemaIdRewriteConverter implements Converter {
     public static final String SOURCE_PREFIX = "source.";
     public static final String DESTINATION_PREFIX = "destination.";
 
+    //add further config properties for schema registry (e.g. authentication)
+    //modeled after: https://github.com/confluentinc/schema-registry/blob/master/schema-serializer/src/main/java/io/confluent/kafka/serializers/AbstractKafkaSchemaSerDeConfig.java
     static {
         addSchemaRegistryConfig(configDef, SOURCE_PREFIX);
         SchemaRegistryClientConfig.withClientSslSupport(configDef, SOURCE_PREFIX + SchemaRegistryClientConfig.CLIENT_NAMESPACE);
@@ -56,12 +54,11 @@ public class SchemaIdRewriteConverter implements Converter {
 
     private static void addSchemaRegistryConfig(ConfigDef configDef, String namespace) {
         final var prefix = namespace + SchemaRegistryClientConfig.CLIENT_NAMESPACE;
-        //TODO: add docu-strings
-        configDef.define(prefix + "url", Type.STRING, Importance.HIGH, namespace + " schema registry URK");
-        configDef.define(prefix + SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE, Type.STRING, Importance.MEDIUM, "TODD");
-        configDef.define(prefix + SchemaRegistryClientConfig.USER_INFO_CONFIG, Type.STRING, Importance.MEDIUM, "TODO");
-        configDef.define(prefix + SchemaRegistryClientConfig.BEARER_AUTH_TOKEN_CONFIG, Type.STRING, Importance.MEDIUM, "TODO");
-        configDef.define(prefix + SchemaRegistryClientConfig.BEARER_AUTH_CREDENTIALS_SOURCE, Type.STRING, Importance.MEDIUM, "TODO");
+        configDef.define(prefix + "url", Type.STRING, Importance.HIGH, namespace + " schema registry URL");
+        configDef.define(prefix + SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE, Type.STRING, Importance.MEDIUM, namespace + " credential source for basic auth.");
+        configDef.define(prefix + SchemaRegistryClientConfig.USER_INFO_CONFIG, Type.STRING, Importance.MEDIUM, namespace + " user info for basic auth (e.g., <username>:<password>.");
+        configDef.define(prefix + SchemaRegistryClientConfig.BEARER_AUTH_TOKEN_CONFIG, Type.STRING, Importance.MEDIUM, namespace + " bearer auth token.");
+        configDef.define(prefix + SchemaRegistryClientConfig.BEARER_AUTH_CREDENTIALS_SOURCE, Type.STRING, Importance.MEDIUM, namespace + " bearer auth credential source.");
     }
 
     private SchemaIdRewriter rewriter;
